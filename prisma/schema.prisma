@@ -1,0 +1,190 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id                String              @id @default(cuid())
+  nombre            String
+  email             String              @unique
+  passwordHash      String
+  rol               String
+  activo            Boolean             @default(true)
+  intentosFallidos  Int                 @default(0)
+  bloqueadoHasta    DateTime?
+  ultimoAcceso      DateTime?
+  creado            DateTime            @default(now())
+  auditoria         RegistroAuditoria[]
+  permisosRevisados Permiso[]           @relation("PermisoRevisor")
+}
+
+model Area {
+  id             String         @id @default(cuid())
+  nombre         String         @unique
+  activo         Boolean        @default(true)
+  colaboradores  Colaborador[]
+}
+
+model Cargo {
+  id             String         @id @default(cuid())
+  nombre         String         @unique
+  activo         Boolean        @default(true)
+  colaboradores  Colaborador[]
+}
+
+model Colaborador {
+  id                    String                 @id @default(cuid())
+  codigo                String                 @unique
+  nombres               String
+  apellidos             String
+  email                 String?
+  dni                   String?
+  estado                String                 @default("Activo")
+  remuneracion          Float                  @default(0)
+  fechaIngreso          DateTime               @default(now())
+  jefeId                String?
+  jefe                  Colaborador?           @relation("Jefatura", fields: [jefeId], references: [id])
+  reportes              Colaborador[]          @relation("Jefatura")
+  areaId                String?
+  area                  Area?                  @relation(fields: [areaId], references: [id])
+  cargoId               String?
+  cargo                 Cargo?                 @relation(fields: [cargoId], references: [id])
+  contratos             Contrato[]
+  boletas               Boleta[]
+  asistencias           Asistencia[]
+  permisos              Permiso[]
+  asignacionesBeneficio AsignacionBeneficio[]
+  documentos            Documento[]
+  postulacion           Postulante?
+}
+
+model Vacante {
+  id          String        @id @default(cuid())
+  titulo      String
+  area        String
+  estado      String        @default("Abierta")
+  creado      DateTime      @default(now())
+  postulantes Postulante[]
+}
+
+model Postulante {
+  id             String       @id @default(cuid())
+  nombres        String
+  email          String
+  canal          String
+  creado         DateTime     @default(now())
+  etapa          String       @default("Recibido")
+  cvUrl          String?
+  cvNombre       String?
+  colaboradorId  String?      @unique
+  colaborador    Colaborador? @relation(fields: [colaboradorId], references: [id])
+  vacanteId      String
+  vacante        Vacante      @relation(fields: [vacanteId], references: [id])
+}
+
+model Contrato {
+  id             String      @id @default(cuid())
+  tipo           String
+  fechaInicio    DateTime
+  fechaFin       DateTime?
+  colaboradorId  String
+  colaborador    Colaborador @relation(fields: [colaboradorId], references: [id])
+}
+
+model Planilla {
+  id                String    @id @default(cuid())
+  periodo           String    @unique
+  estado            String    @default("Borrador")
+  tasaDescuento     Float     @default(0)
+  tasaAporte        Float     @default(0)
+  totalBruto        Float     @default(0)
+  totalDescuentos   Float     @default(0)
+  totalAportes      Float     @default(0)
+  totalNeto         Float     @default(0)
+  creado            DateTime  @default(now())
+  boletas           Boleta[]
+}
+
+model Boleta {
+  id             String      @id @default(cuid())
+  colaboradorId  String
+  colaborador    Colaborador @relation(fields: [colaboradorId], references: [id])
+  planillaId     String
+  planilla       Planilla    @relation(fields: [planillaId], references: [id])
+  bruto          Float
+  descuentos     Float       @default(0)
+  aportes        Float       @default(0)
+  neto           Float
+
+  @@unique([planillaId, colaboradorId])
+}
+
+model Asistencia {
+  id             String      @id @default(cuid())
+  colaboradorId  String
+  colaborador    Colaborador @relation(fields: [colaboradorId], references: [id])
+  fecha          DateTime
+  entrada        DateTime?
+  salida         DateTime?
+  estado         String
+  notas          String?
+}
+
+model Permiso {
+  id             String      @id @default(cuid())
+  colaboradorId  String
+  colaborador    Colaborador @relation(fields: [colaboradorId], references: [id])
+  tipo           String
+  inicio         DateTime
+  fin            DateTime
+  motivo         String
+  estado         String      @default("Pendiente")
+  revisadoPorId  String?
+  revisor        Usuario?    @relation("PermisoRevisor", fields: [revisadoPorId], references: [id])
+  revisadoEn     DateTime?
+}
+
+model Beneficio {
+  id           String                 @id @default(cuid())
+  nombre       String                 @unique
+  descripcion  String?
+  categoria    String                 @default("Otro")
+  activo       Boolean                @default(true)
+  asignaciones AsignacionBeneficio[]
+}
+
+model AsignacionBeneficio {
+  id             String      @id @default(cuid())
+  colaboradorId  String
+  colaborador    Colaborador @relation(fields: [colaboradorId], references: [id])
+  beneficioId    String
+  beneficio      Beneficio   @relation(fields: [beneficioId], references: [id])
+  vigenciaDesde  DateTime
+  vigenciaHasta  DateTime?
+  creado         DateTime    @default(now())
+}
+
+model Documento {
+  id             String      @id @default(cuid())
+  colaboradorId  String
+  colaborador    Colaborador @relation(fields: [colaboradorId], references: [id])
+  nombre         String
+  url            String
+  tipo           String
+  creado         DateTime    @default(now())
+}
+
+model RegistroAuditoria {
+  id          String   @id @default(cuid())
+  usuarioId   String
+  usuario     Usuario  @relation(fields: [usuarioId], references: [id])
+  accion      String
+  entidad     String
+  entidadId   String?
+  detalle     String?
+  creado      DateTime @default(now())
+}

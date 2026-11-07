@@ -1,0 +1,13 @@
+node_modules/
+.npm-cache/
+.next/
+*.db
+*.db-journal
+.env
+.env.*
+!.env.example
+storage/cv/
+storage/people/
+coverage/
+
+.vercel

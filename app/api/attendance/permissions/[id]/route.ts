@@ -1,0 +1,6 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { HR_ROLES,requireRole } from '@/lib/permissions';
+const schema=z.object({estado:z.enum(['Aprobado','Rechazado'])});
+export async function PATCH(req:Request,{params}:{params: Promise<{ id: string }>}){const {id}=await params;const access=await requireRole(HR_ROLES);if(access.response)return access.response;const body=schema.safeParse(await req.json());if(!body.success)return NextResponse.json({error:'Decisión no válida.'},{status:400});const request=await prisma.permiso.findUnique({where:{id:id}});if(!request)return NextResponse.json({error:'Solicitud no encontrada.'},{status:404});if(request.estado!=='Pendiente')return NextResponse.json({error:'La solicitud ya fue revisada.'},{status:409});const updated=await prisma.permiso.update({where:{id:id},data:{estado:body.data.estado,revisadoPorId:access.user!.id!,revisadoEn:new Date()}});await prisma.registroAuditoria.create({data:{usuarioId:access.user!.id!,accion:body.data.estado==='Aprobado'?'APROBAR':'RECHAZAR',entidad:'Permiso',entidadId:updated.id,detalle:`${updated.tipo} ${body.data.estado.toLowerCase()}`}});return NextResponse.json(updated)}

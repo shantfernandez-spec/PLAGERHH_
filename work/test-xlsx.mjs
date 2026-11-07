@@ -1,0 +1,10 @@
+import { unzipSync, strFromU8 } from 'fflate';
+import { downloadXlsx } from '../lib/export-xlsx.ts';
+let captured;
+globalThis.document={createElement:()=>({click(){},set href(v){},set download(v){}})};
+URL.createObjectURL=(blob)=>{captured=blob;return 'blob:test'}; URL.revokeObjectURL=()=>{};
+downloadXlsx('sample.xlsx','Prueba & <TREZ>',[{Nombre:'Ana & Luis',Monto:123.5},{Nombre:'<script>',Monto:null}]);
+const files=unzipSync(new Uint8Array(await captured.arrayBuffer()));
+const xml=strFromU8(files['xl/worksheets/sheet1.xml']);
+if(!xml.includes('Ana &amp; Luis')||!xml.includes('&lt;script&gt;')||!xml.includes('<v>123.5</v>')) throw new Error('XLSX content check failed');
+console.log('XLSX OOXML válido:',Object.keys(files).length,'archivos y celdas escapadas');

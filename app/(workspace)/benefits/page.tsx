@@ -1,0 +1,4 @@
+import { prisma } from '@/lib/prisma';
+import BenefitsWorkspace from '@/components/benefits-workspace';
+
+export default async function BenefitsPage(){const [benefits,assignments,people]=await Promise.all([prisma.beneficio.findMany({orderBy:{nombre:'asc'}}),prisma.asignacionBeneficio.findMany({include:{beneficio:true,colaborador:{select:{id:true,codigo:true,nombres:true,apellidos:true,estado:true,area:{select:{nombre:true}}}}},orderBy:{vigenciaDesde:'desc'}}),prisma.colaborador.findMany({where:{estado:{notIn:['Inactivo','Cesado']}},orderBy:{apellidos:'asc'},select:{id:true,codigo:true,nombres:true,apellidos:true,area:{select:{nombre:true}}}})]);return <BenefitsWorkspace initialBenefits={JSON.parse(JSON.stringify(benefits))} initialAssignments={JSON.parse(JSON.stringify(assignments))} people={people}/>}

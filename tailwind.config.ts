@@ -1,0 +1,2 @@
+import type { Config } from 'tailwindcss';
+export default { content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}'], theme: { extend: { colors: { plomo: { 900: '#2F3B4A', 500: '#5B6B7C' }, fondo: '#EEF2F6', celeste: '#2E9BD6', 'celeste-claro': '#D6EDFA', exito: '#2E9E6B', alerta: '#E0A12B', error: '#D64545' }, fontFamily: { sans: ['Inter', 'Arial', 'sans-serif'] }, borderRadius: { card: '10px' } } }, plugins: [] } satisfies Config;

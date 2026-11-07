@@ -1,0 +1,6 @@
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { prisma } from '@/lib/prisma';
+import { HR_ROLES,requireRole } from '@/lib/permissions';
+const schema=z.object({nombre:z.string().trim().min(2).max(100),descripcion:z.string().trim().max(500).optional().or(z.literal('')),categoria:z.enum(['Alimentación','Salud','Formación','Financiero','Bienestar','Otro']),activo:z.boolean()});
+export async function PATCH(req:Request,{params}:{params: Promise<{ id: string }>}){const {id}=await params;const access=await requireRole(HR_ROLES);if(access.response)return access.response;const body=schema.safeParse(await req.json());if(!body.success)return NextResponse.json({error:'Revisa los datos del beneficio.'},{status:400});if(!await prisma.beneficio.findUnique({where:{id:id}}))return NextResponse.json({error:'Beneficio no encontrado.'},{status:404});try{const item=await prisma.beneficio.update({where:{id:id},data:{...body.data,descripcion:body.data.descripcion||null}});await prisma.registroAuditoria.create({data:{usuarioId:access.user!.id!,accion:'ACTUALIZAR',entidad:'Beneficio',entidadId:item.id,detalle:`Actualizó el beneficio ${item.nombre}`}});return NextResponse.json(item)}catch{return NextResponse.json({error:'No se pudo actualizar el beneficio.'},{status:400})}}

@@ -1,0 +1,7 @@
+import { NextResponse } from 'next/server';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { prisma } from '@/lib/prisma';
+import { HR_ROLES,requireRole } from '@/lib/permissions';
+export const runtime='nodejs';
+export async function GET(_req:Request,{params}:{params: Promise<{ key: string }>}){const {key}=await params;const access=await requireRole([...HR_ROLES,'CONSULTA']);if(access.response)return access.response;if(!/^[0-9a-f-]{36}\.(pdf|doc|docx|png|jpg|jpeg)$/.test(key))return NextResponse.json({error:'Documento no encontrado.'},{status:404});const doc=await prisma.documento.findFirst({where:{url:`/api/people/documents/${key}`}});if(!doc)return NextResponse.json({error:'Documento no encontrado.'},{status:404});try{const data=await readFile(path.join(process.cwd(),'storage','people',key));const ext=path.extname(key);const types:Record<string,string>={'.pdf':'application/pdf','.doc':'application/msword','.docx':'application/vnd.openxmlformats-officedocument.wordprocessingml.document','.png':'image/png','.jpg':'image/jpeg','.jpeg':'image/jpeg'};return new NextResponse(data,{headers:{'Content-Type':types[ext],'Content-Disposition':`attachment; filename="${encodeURIComponent(doc.nombre)}"`,'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'}})}catch{return NextResponse.json({error:'Documento no disponible.'},{status:404})}}
